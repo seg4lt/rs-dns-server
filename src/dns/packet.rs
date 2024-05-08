@@ -1,7 +1,7 @@
 use crate::common::AsBytes;
 
 use super::header::DnsHeader;
-use super::message::{DnsQuestion, DnsRecordClass, DnsRecordType};
+use super::message::DnsQuestion;
 
 pub struct DnsPacket {
     pub header: DnsHeader,
@@ -10,6 +10,14 @@ pub struct DnsPacket {
 impl DnsPacket {
     pub fn builder() -> DnsPacketBuilder {
         DnsPacketBuilder::default()
+    }
+}
+impl AsBytes for DnsPacket {
+    fn as_bytes(&self) -> Vec<u8> {
+        let mut buf: Vec<u8> = Vec::with_capacity(512);
+        buf.extend(self.header.as_bytes());
+        self.questions.iter().for_each(|q| buf.extend(q.as_bytes()));
+        buf
     }
 }
 
@@ -23,7 +31,7 @@ impl DnsPacketBuilder {
         self.questions.push(question);
         self
     }
-    pub fn build(mut self) -> DnsPacket {
+    pub fn build(self) -> DnsPacket {
         let packet = DnsPacket {
             header: DnsHeader {
                 id: 1234,
@@ -43,14 +51,5 @@ impl DnsPacketBuilder {
             questions: self.questions,
         };
         packet
-    }
-}
-
-impl AsBytes for DnsPacket {
-    fn as_bytes(&self) -> Vec<u8> {
-        let mut buf: Vec<u8> = Vec::with_capacity(512);
-        buf.extend(self.header.as_bytes());
-        self.questions.iter().for_each(|q| buf.extend(q.as_bytes()));
-        buf
     }
 }

@@ -6,7 +6,6 @@ use crate::{
     common::AsBytes,
     config::setup_log,
     dns::{
-        header::DnsHeader,
         message::{DnsQuestion, DnsRecordClass, DnsRecordType},
         packet::DnsPacket,
     },
