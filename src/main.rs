@@ -5,7 +5,11 @@ use tracing::{error, info};
 use crate::{
     common::AsBytes,
     config::setup_log,
-    dns::{header::DnsHeader, packet::DnsPacket},
+    dns::{
+        header::DnsHeader,
+        message::{DnsQuestion, DnsRecordClass, DnsRecordType},
+        packet::DnsPacket,
+    },
 };
 
 mod common;
@@ -24,26 +28,14 @@ fn main() {
             Ok((size, source)) => {
                 info!("Received {} bytes from {}", size, source);
 
-                let packet = DnsPacket {
-                    header: DnsHeader {
-                        id: 1234,
-                        qr: 1,
-                        opcode: 0,
-                        aa: 0,
-                        tc: 0,
-                        rd: 0,
-                        ra: 0,
-                        z: 0,
-                        rcode: 0,
-                        qdcount: 0,
-                        ancount: 0,
-                        nscount: 0,
-                        arcount: 0,
-                    },
-                };
+                let packet = DnsPacket::builder()
+                    .add_question(DnsQuestion {
+                        name: "codecrafters.io".to_string(),
+                        record_class: DnsRecordClass::IN,
+                        record_type: DnsRecordType::A,
+                    })
+                    .build();
                 let response = packet.as_bytes();
-
-                // let response = [];
                 udp_socket
                     .send_to(&response, source)
                     .expect("Failed to send response");

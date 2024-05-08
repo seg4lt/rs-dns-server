@@ -3,3 +3,9 @@
 ## Notes
 
 - Test locally - `echo "Your Message" | nc -u 127.0.0.1 2053`
+
+## References
+
+- https://en.wikipedia.org/wiki/Domain_Name_System#DNS_message_format
+- https://datatracker.ietf.org/doc/html/rfc1035#section-4.1
+- https://github.com/EmilHernvall/dnsguide/blob/b52da3b32b27c81e5c6729ac14fe01fef8b1b593/chapter1.md

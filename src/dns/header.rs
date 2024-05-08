@@ -70,6 +70,28 @@ mod tests {
         };
         let byte = dns_header.as_bytes();
 
-        assert_eq!(byte, vec![0b100, 0b11010010]);
+        assert_eq!(
+            byte,
+            vec![
+                // id
+                0b100,
+                0b11010010,
+                // other bits
+                0b1000_0000,
+                0b0000_0000,
+                // qdcount
+                0b0,
+                0b0,
+                //ancount
+                0b0,
+                0b0,
+                //nscount
+                0b0,
+                0b0,
+                // arcount
+                0b0,
+                0b0
+            ]
+        );
     }
 }
