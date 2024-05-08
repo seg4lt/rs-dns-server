@@ -2,7 +2,7 @@ use crate::common::AsBytes;
 
 /// DnsHeader represents the header of a DNS packet.
 /// It occupies 12 bytes in the packet.
-pub struct DnsHeader {
+pub struct Header {
     /// ID         16 bits    Packet Identifier
     pub id: u16,
     /// QR         1 bit      Query/Response flag (QR)
@@ -31,7 +31,7 @@ pub struct DnsHeader {
     pub arcount: u16,
 }
 
-impl AsBytes for DnsHeader {
+impl AsBytes for Header {
     fn as_bytes(&self) -> Vec<u8> {
         let mut bytes: [u8; 12] = [0; 12];
         bytes[0..2].copy_from_slice(&self.id.to_be_bytes());
@@ -49,11 +49,11 @@ impl AsBytes for DnsHeader {
 mod tests {
     use crate::common::AsBytes;
 
-    use super::DnsHeader;
+    use super::Header;
 
     #[test]
     fn test_as_bytes() {
-        let dns_header = DnsHeader {
+        let dns_header = Header {
             id: 1234,
             qr: 1,
             opcode: 0,

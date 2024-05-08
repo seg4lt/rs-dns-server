@@ -6,8 +6,10 @@ use crate::{
     common::AsBytes,
     config::setup_log,
     dns::{
-        message::{DnsQuestion, DnsRecordClass, DnsRecordType},
-        packet::DnsPacket,
+        answer::{Answer, RData},
+        packet::Packet,
+        question::Question,
+        Label, RecordClass, RecordType,
     },
 };
 
@@ -27,11 +29,22 @@ fn main() {
             Ok((size, source)) => {
                 info!("Received {} bytes from {}", size, source);
 
-                let packet = DnsPacket::builder()
-                    .add_question(DnsQuestion {
-                        name: "codecrafters.io".to_string(),
-                        record_class: DnsRecordClass::IN,
-                        record_type: DnsRecordType::A,
+                let packet = Packet::builder()
+                    .add_question(Question {
+                        name: Label {
+                            label_str: "codecrafters.io".to_string(),
+                        },
+                        record_class: RecordClass::IN,
+                        record_type: RecordType::A,
+                    })
+                    .add_answer(Answer {
+                        name: Label {
+                            label_str: "codecrafters.io".to_string(),
+                        },
+                        answer_type: RecordType::A,
+                        class: RecordClass::IN,
+                        ttl: 60,
+                        rdata: RData("8.8.8.8".to_string()),
                     })
                     .build();
                 let response = packet.as_bytes();

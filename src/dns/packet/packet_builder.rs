@@ -1,20 +1,25 @@
-use crate::dns::{header::DnsHeader, message::DnsQuestion};
+use crate::dns::{answer::Answer, header::Header, question::Question};
 
-use super::DnsPacket;
+use super::Packet;
 
 #[derive(Default)]
-pub struct DnsPacketBuilder {
-    questions: Vec<DnsQuestion>,
+pub struct PacketBuilder {
+    questions: Vec<Question>,
+    answers: Vec<Answer>,
 }
 
-impl DnsPacketBuilder {
-    pub fn add_question(mut self, question: DnsQuestion) -> Self {
+impl PacketBuilder {
+    pub fn add_question(mut self, question: Question) -> Self {
         self.questions.push(question);
         self
     }
-    pub fn build(self) -> DnsPacket {
-        let packet = DnsPacket {
-            header: DnsHeader {
+    pub fn add_answer(mut self, answer: Answer) -> Self {
+        self.answers.push(answer);
+        self
+    }
+    pub fn build(self) -> Packet {
+        let packet = Packet {
+            header: Header {
                 id: 1234,
                 qr: 1,
                 opcode: 0,
@@ -25,18 +30,19 @@ impl DnsPacketBuilder {
                 z: 0,
                 rcode: 0,
                 qdcount: self.questions.len() as u16,
-                ancount: 0,
+                ancount: self.answers.len() as u16,
                 nscount: 0,
                 arcount: 0,
             },
             questions: self.questions,
+            answers: self.answers,
         };
         packet
     }
 }
 
-impl DnsPacket {
-    pub fn builder() -> DnsPacketBuilder {
-        DnsPacketBuilder::default()
+impl Packet {
+    pub fn builder() -> PacketBuilder {
+        PacketBuilder::default()
     }
 }
