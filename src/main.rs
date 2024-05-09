@@ -30,7 +30,6 @@ fn main() {
                 info!("Received {} bytes from {}", size, source);
                 let mut reader = Cursor::new(buf);
                 let received_packet = Packet::parse(&mut reader);
-                info!(?received_packet, "Received Packet");
 
                 let packet = Packet::builder()
                     .header(received_packet.header)

@@ -93,7 +93,6 @@ impl Header {
 
         self.rd = bits16!(@msb; flags, 1) as u8;
         flags = flags << 1;
-        info!(?self.rd, "value of rd when parsing");
 
         self.ra = bits16!(@msb; flags, 1) as u8;
         flags = flags << 1;
@@ -135,7 +134,6 @@ impl Header {
         let mut rd = self.rd;
         rd = rd << 7;
         let bit = bits!(@msb; rd, 1);
-        info!(?self.rd, rd, bit, "push bits: RD Value");
         push_bits(&mut buf, bit);
 
         let mut ra = self.ra;
