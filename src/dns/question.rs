@@ -7,15 +7,15 @@ use super::{Label, RecordClass, RecordType};
 #[derive(Debug)]
 pub struct Question {
     pub name: Label,
-    pub record_type: RecordType,
-    pub record_class: RecordClass,
+    pub typez: RecordType,
+    pub class: RecordClass,
 }
 
 impl AsBytes for Question {
     fn as_bytes(&self) -> Vec<u8> {
         let mut buf = self.name.as_bytes();
-        buf.extend(self.record_type.as_bytes());
-        buf.extend(self.record_class.as_bytes());
+        buf.extend(self.typez.as_bytes());
+        buf.extend(self.class.as_bytes());
         return buf;
     }
 }
@@ -29,8 +29,8 @@ where
         let record_class = RecordClass::parse(reader);
         Self {
             name,
-            record_type,
-            record_class,
+            typez: record_type,
+            class: record_class,
         }
     }
 }
@@ -48,8 +48,8 @@ mod tests {
     fn test_dns_message() {
         let message = Question {
             name: Label("google.com".to_string()),
-            record_type: RecordType::A,
-            record_class: RecordClass::IN,
+            typez: RecordType::A,
+            class: RecordClass::IN,
         };
         assert_eq!(
             message.as_bytes(),
@@ -57,7 +57,7 @@ mod tests {
                 0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03, 0x63, 0x6f, 0x6d, 0x00,
                 // record_type
                 0x00, 0x1, // record_class
-                0x0, 0x2
+                0x0, 0x1
             ]
         )
     }
@@ -66,15 +66,15 @@ mod tests {
     fn test_parse() {
         let message = Question {
             name: Label("google.com".to_string()),
-            record_type: RecordType::A,
-            record_class: RecordClass::IN,
+            typez: RecordType::A,
+            class: RecordClass::IN,
         };
         let mut actual_bytes = message.as_bytes();
         let mut reader = Cursor::new(actual_bytes);
 
         let parsed = Question::parse(&mut reader);
         assert_eq!(parsed.name.0, message.name.0);
-        assert_eq!(parsed.record_type, message.record_type);
-        assert_eq!(parsed.record_class, message.record_class);
+        assert_eq!(parsed.typez, message.typez);
+        assert_eq!(parsed.class, message.class);
     }
 }

@@ -67,8 +67,8 @@ mod tests {
             .header(header)
             .question(Question {
                 name: Label("codecrafters.io".to_string()),
-                record_class: RecordClass::IN,
-                record_type: RecordType::A,
+                class: RecordClass::IN,
+                typez: RecordType::A,
             })
             .build();
         let packet_byte = packet.as_bytes();
@@ -80,7 +80,31 @@ mod tests {
     fn test_as_bytes() {
         let mut header = Header::default();
         header.qdcount = 1;
-        eprintln!("{:?}", header.as_bytes())
+        let packet = Packet::builder()
+            .header(header)
+            .question(Question {
+                name: Label("codecrafters.io".to_string()),
+                class: RecordClass::IN,
+                typez: RecordType::A,
+            })
+            .answer(Answer {
+                name: Label("codecrafters.io".to_string()),
+                typez: RecordType::A,
+                class: RecordClass::IN,
+                ttl: 60,
+                rdata: RData("8.8.8.8".to_string()),
+            })
+            .build();
+        let bytes = packet.as_bytes();
+        assert_eq!(
+            bytes,
+            vec![
+                0, 0, 128, 0, 0, 1, 0, 1, 0, 0, 0, 0, 12, 99, 111, 100, 101, 99, 114, 97, 102, 116,
+                101, 114, 115, 2, 105, 111, 0, 0, 1, 0, 1, 12, 99, 111, 100, 101, 99, 114, 97, 102,
+                116, 101, 114, 115, 2, 105, 111, 0, 0, 1, 0, 1, 0, 0, 0, 60, 0, 0, 0, 0, 0, 0, 0,
+                4, 8, 8, 8, 8
+            ]
+        )
     }
 
     #[test]
@@ -90,9 +114,10 @@ mod tests {
             101, 114, 115, 2, 105, 111, 0, 0, 1, 0, 1,
         ];
         let mut reader = Cursor::new(bytes);
-        let header = Header::parse(&mut reader);
-        let alp = vec![99, 111, 100, 101, 99, 114, 97, 102, 116, 101, 114, 115];
-        let s = String::from_utf8(alp).unwrap();
-        eprintln!("s: {}, Header {:?}", s, header);
+        let packet = Packet::parse(&mut reader);
+
+        assert_eq!(packet.header.id, 63823);
+        assert_eq!(packet.header.qdcount, 1);
+        assert_eq!(packet.questions.first().unwrap().name.0, "codecrafters.io");
     }
 }

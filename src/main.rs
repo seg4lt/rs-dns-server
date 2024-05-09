@@ -8,8 +8,7 @@ use crate::{
     dns::{
         answer::{Answer, RData},
         packet::Packet,
-        question::Question,
-        Label, RecordClass, RecordType,
+        RecordClass, RecordType,
     },
 };
 
@@ -40,7 +39,7 @@ fn main() {
                             .iter()
                             .map(|q| Answer {
                                 name: q.name.clone(),
-                                answer_type: RecordType::A,
+                                typez: RecordType::A,
                                 class: RecordClass::IN,
                                 ttl: 60,
                                 rdata: RData("8.8.8.8".to_string()),

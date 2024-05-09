@@ -5,7 +5,7 @@ use super::{Label, RecordClass, RecordType};
 #[derive(Debug)]
 pub struct Answer {
     pub name: Label,
-    pub answer_type: RecordType,
+    pub typez: RecordType,
     pub class: RecordClass,
     pub ttl: u32,
     pub rdata: RData,
@@ -14,7 +14,7 @@ pub struct Answer {
 impl AsBytes for Answer {
     fn as_bytes(&self) -> Vec<u8> {
         let mut buf = self.name.as_bytes();
-        buf.extend(self.answer_type.as_bytes());
+        buf.extend(self.typez.as_bytes());
         buf.extend(self.class.as_bytes());
         buf.extend(self.ttl.to_be_bytes());
         let rdata = self.rdata.as_bytes();
@@ -48,7 +48,7 @@ mod tests {
     fn test_dns_answer() {
         let answer = Answer {
             name: Label("google.com".to_string()),
-            answer_type: RecordType::A,
+            typez: RecordType::A,
             class: RecordClass::IN,
             ttl: 60,
             rdata: super::RData("8.8.8.8".to_string()),
