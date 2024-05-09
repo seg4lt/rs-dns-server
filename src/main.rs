@@ -1,6 +1,6 @@
 use std::{io::Cursor, net::UdpSocket};
 
-use tracing::{error, info};
+use tracing::{debug, error, info};
 
 use crate::{
     common::{AsBytes, Parse},
@@ -27,7 +27,7 @@ fn main() {
         match udp_socket.recv_from(&mut buf) {
             Ok((size, source)) => {
                 info!("Received {} bytes from {}", size, source);
-                info!("BUF {:?}", &buf[0..size]);
+                debug!("Received buffer {:?}", &buf[0..size]);
                 let mut reader = Cursor::new(buf);
                 let received_packet = Packet::parse(&mut reader);
 
