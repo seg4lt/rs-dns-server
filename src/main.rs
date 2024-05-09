@@ -1,9 +1,9 @@
-use std::net::UdpSocket;
+use std::{io::Cursor, net::UdpSocket};
 
 use tracing::{error, info};
 
 use crate::{
-    common::AsBytes,
+    common::{AsBytes, Parse},
     config::setup_log,
     dns::{
         answer::{Answer, RData},
@@ -28,18 +28,22 @@ fn main() {
         match udp_socket.recv_from(&mut buf) {
             Ok((size, source)) => {
                 info!("Received {} bytes from {}", size, source);
+                let mut reader = Cursor::new(buf);
+                let received_packet = Packet::parse(&mut reader);
+                info!(?received_packet, "Received Packet");
 
                 let packet = Packet::builder()
-                    .add_question(Question {
+                    .header(received_packet.header)
+                    .question(Question {
                         name: Label {
-                            label_str: "codecrafters.io".to_string(),
+                            label: "codecrafters.io".to_string(),
                         },
                         record_class: RecordClass::IN,
                         record_type: RecordType::A,
                     })
-                    .add_answer(Answer {
+                    .answer(Answer {
                         name: Label {
-                            label_str: "codecrafters.io".to_string(),
+                            label: "codecrafters.io".to_string(),
                         },
                         answer_type: RecordType::A,
                         class: RecordClass::IN,

@@ -2,6 +2,7 @@ use crate::common::AsBytes;
 
 use super::{Label, RecordClass, RecordType};
 
+#[derive(Debug)]
 pub struct Question {
     pub name: Label,
     pub record_type: RecordType,
@@ -27,7 +28,7 @@ mod tests {
     fn test_dns_message() {
         let message = Question {
             name: Label {
-                label_str: "google.com".to_string(),
+                label: "google.com".to_string(),
             },
             record_type: RecordType::A,
             record_class: RecordClass::IN,

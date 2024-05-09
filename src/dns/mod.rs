@@ -8,6 +8,7 @@ pub mod question;
 pub mod server;
 
 /// https://www.rfc-editor.org/rfc/rfc1035#section-3.2.2
+#[derive(Debug)]
 pub enum RecordType {
     A,
     NS,
@@ -52,6 +53,7 @@ impl AsBytes for RecordType {
 }
 
 /// https://www.rfc-editor.org/rfc/rfc1035#section-3.2.4
+#[derive(Debug)]
 pub enum RecordClass {
     IN,
     CS,
@@ -71,13 +73,14 @@ impl AsBytes for RecordClass {
     }
 }
 
+#[derive(Debug)]
 pub struct Label {
-    pub label_str: String,
+    pub label: String,
 }
 impl AsBytes for Label {
     fn as_bytes(&self) -> Vec<u8> {
         let mut labels = self
-            .label_str
+            .label
             .split(".")
             .map(|label| {
                 let len = label.len();

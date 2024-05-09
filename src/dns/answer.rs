@@ -2,6 +2,7 @@ use crate::common::AsBytes;
 
 use super::{Label, RecordClass, RecordType};
 
+#[derive(Debug)]
 pub struct Answer {
     pub name: Label,
     pub answer_type: RecordType,
@@ -23,6 +24,7 @@ impl AsBytes for Answer {
     }
 }
 
+#[derive(Debug)]
 pub struct RData(pub String);
 impl AsBytes for RData {
     fn as_bytes(&self) -> Vec<u8> {
@@ -46,7 +48,7 @@ mod tests {
     fn test_dns_answer() {
         let answer = Answer {
             name: Label {
-                label_str: "google.com".to_string(),
+                label: "google.com".to_string(),
             },
             answer_type: RecordType::A,
             class: RecordClass::IN,

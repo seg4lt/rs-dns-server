@@ -1,7 +1,15 @@
-use crate::common::AsBytes;
+use std::{default, io::Read};
+
+use tracing::info;
+
+use crate::{
+    bits, bits16,
+    common::{binary_macros::push_bits, AsBytes, Parse},
+};
 
 /// DnsHeader represents the header of a DNS packet.
 /// It occupies 12 bytes in the packet.
+#[derive(Default, Debug)]
 pub struct Header {
     /// ID         16 bits    Packet Identifier
     pub id: u16,
@@ -35,8 +43,9 @@ impl AsBytes for Header {
     fn as_bytes(&self) -> Vec<u8> {
         let mut bytes: [u8; 12] = [0; 12];
         bytes[0..2].copy_from_slice(&self.id.to_be_bytes());
-        bytes[2] = 0b1000_0000;
-        bytes[3] = 0b0000_0000;
+        // bytes[2] = 0b1000_0000;
+        // bytes[3] = 0b0000_0000;
+        bytes[2..4].copy_from_slice(&self.get_flags_bytes());
         bytes[4..6].copy_from_slice(&self.qdcount.to_be_bytes());
         bytes[6..8].copy_from_slice(&self.ancount.to_be_bytes());
         bytes[8..10].copy_from_slice(&self.nscount.to_be_bytes());
@@ -44,12 +53,154 @@ impl AsBytes for Header {
         return bytes.to_vec();
     }
 }
+impl<R> Parse<R> for Header
+where
+    R: Read,
+{
+    fn parse(reader: &mut R) -> Self {
+        let mut header = Header::default().read_id(reader).read_flags(reader);
+        header
+    }
+}
+
+impl Header {
+    fn read_id<R: Read>(mut self, reader: &mut R) -> Self {
+        let mut buf: [u8; 2] = [0; 2];
+        reader
+            .read_exact(&mut buf)
+            .expect("unable to read dns header id");
+        self.id = u16::from_be_bytes(buf);
+        self
+    }
+    fn read_flags<R: Read>(mut self, reader: &mut R) -> Self {
+        let mut buf: [u8; 2] = [0; 2];
+        reader
+            .read_exact(&mut buf)
+            .expect("unable to read header flags");
+        let mut flags = u16::from_be_bytes(buf);
+
+        self.qr = bits16!(@msb; flags, 1) as u8;
+        flags = flags << 1;
+
+        self.opcode = bits16!(@msb; flags, 4) as u8;
+        flags = flags << 4;
+
+        self.aa = bits16!(@msb; flags, 1) as u8;
+        flags = flags << 1;
+
+        self.tc = bits16!(@msb; flags, 1) as u8;
+        flags = flags << 1;
+
+        self.rd = bits16!(@msb; flags, 1) as u8;
+        flags = flags << 1;
+        info!(?self.rd, "value of rd when parsing");
+
+        self.ra = bits16!(@msb; flags, 1) as u8;
+        flags = flags << 1;
+
+        self.z = bits16!(@msb; flags, 3) as u8;
+        flags = flags << 3;
+
+        self.rcode = bits16!(@msb; flags, 4) as u8;
+        flags = flags << 4;
+
+        self
+    }
+    fn get_flags_bytes(&self) -> [u8; 2] {
+        let mut buf: u16 = 0;
+
+        let mut qr = self.qr;
+        qr = qr << 7; // qr is only q bit, so hack is to discard first 7 bits
+        let bit = bits!(@msb; qr, 1);
+        push_bits(&mut buf, bit);
+
+        let mut opcode = self.opcode;
+        opcode = opcode << 4;
+        for _ in 0..4 {
+            let bit = bits!(@msb; opcode, 1);
+            opcode = opcode << 1;
+            push_bits(&mut buf, bit);
+        }
+
+        let mut aa = self.aa;
+        aa = aa << 7;
+        let bit = bits!(@msb; aa, 1);
+        push_bits(&mut buf, bit);
+
+        let mut tc = self.tc;
+        tc = tc << 7;
+        let bit = bits!(@msb; tc, 1);
+        push_bits(&mut buf, bit);
+
+        let mut rd = self.rd;
+        rd = rd << 7;
+        let bit = bits!(@msb; rd, 1);
+        info!(?self.rd, rd, bit, "push bits: RD Value");
+        push_bits(&mut buf, bit);
+
+        let mut ra = self.ra;
+        ra = ra << 7;
+        let bit = bits!(@msb; ra, 1);
+        push_bits(&mut buf, bit);
+
+        let mut z = self.z;
+        z = z << 5;
+        for _ in 0..3 {
+            let bit = bits!(@msb; z, 1);
+            z = z << 1;
+            push_bits(&mut buf, bit);
+        }
+
+        let mut rcode = self.rcode;
+        rcode = rcode << 4;
+        for _ in 0..4 {
+            let bit = bits!(@msb; rcode, 1);
+            rcode = rcode << 1;
+            push_bits(&mut buf, bit);
+        }
+        buf.to_be_bytes()
+    }
+}
 
 #[cfg(test)]
 mod tests {
-    use crate::common::AsBytes;
+    use std::io::Cursor;
+
+    use crate::common::{AsBytes, Parse};
 
     use super::Header;
+
+    #[test]
+    fn test_parse() {
+        let header = Header {
+            id: 9999,
+            qr: 1,
+            opcode: 1,
+            aa: 1,
+            tc: 1,
+            rd: 1,
+            ra: 1,
+            z: 1,
+            rcode: 1,
+            qdcount: 1,
+            ancount: 1,
+            nscount: 1,
+            arcount: 1,
+        };
+        let byte = header.as_bytes();
+        let mut reader = Cursor::new(byte);
+
+        let parsed = Header::parse(&mut reader);
+        assert_eq!(header.id, parsed.id);
+        assert_eq!(header.qr, parsed.qr);
+        assert_eq!(header.opcode, parsed.opcode);
+        assert_eq!(header.aa, parsed.aa);
+        assert_eq!(header.tc, parsed.tc);
+        assert_eq!(header.rd, parsed.rd);
+        assert_eq!(header.ra, parsed.ra);
+        assert_eq!(header.z, parsed.z);
+        assert_eq!(header.rcode, parsed.rcode);
+    }
 
     #[test]
     fn test_as_bytes() {
