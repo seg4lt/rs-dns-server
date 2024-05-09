@@ -18,6 +18,14 @@ impl PacketBuilder {
         self.questions.push(question);
         self
     }
+    pub fn questions(mut self, questions: Vec<Question>) -> Self {
+        self.questions = questions;
+        self
+    }
+    pub fn answers(mut self, answers: Vec<Answer>) -> Self {
+        self.answers = answers;
+        self
+    }
     pub fn answer(mut self, answer: Answer) -> Self {
         self.answers.push(answer);
         self

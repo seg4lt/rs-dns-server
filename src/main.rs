@@ -28,23 +28,26 @@ fn main() {
         match udp_socket.recv_from(&mut buf) {
             Ok((size, source)) => {
                 info!("Received {} bytes from {}", size, source);
+                info!("BUF {:?}", &buf[0..size]);
                 let mut reader = Cursor::new(buf);
                 let received_packet = Packet::parse(&mut reader);
 
                 let packet = Packet::builder()
                     .header(received_packet.header)
-                    .question(Question {
-                        name: Label("codecrafters.io".to_string()),
-                        record_class: RecordClass::IN,
-                        record_type: RecordType::A,
-                    })
-                    .answer(Answer {
-                        name: Label("codecrafters.io".to_string()),
-                        answer_type: RecordType::A,
-                        class: RecordClass::IN,
-                        ttl: 60,
-                        rdata: RData("8.8.8.8".to_string()),
-                    })
+                    .answers(
+                        received_packet
+                            .questions
+                            .iter()
+                            .map(|q| Answer {
+                                name: q.name.clone(),
+                                answer_type: RecordType::A,
+                                class: RecordClass::IN,
+                                ttl: 60,
+                                rdata: RData("8.8.8.8".to_string()),
+                            })
+                            .collect(),
+                    )
+                    .questions(received_packet.questions)
                     .build();
                 let response = packet.as_bytes();
                 udp_socket

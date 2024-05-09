@@ -1,3 +1,5 @@
+use tracing_subscriber::field::display::Messages;
+
 use crate::common::{AsBytes, Parse};
 
 use super::answer::Answer;
@@ -27,10 +29,17 @@ impl<R> Parse<R> for Packet
 where
     R: std::io::Read,
 {
-    fn parse(buf: &mut R) -> Self {
-        let header = Header::parse(buf);
-        let mut packet = Packet::builder().header(header).build();
-        return packet;
+    fn parse(reader: &mut R) -> Self {
+        let header = Header::parse(reader);
+        // tracing::debug!(?header, "Value of header");
+        let questions: Vec<Question> = (0..header.qdcount)
+            .map(|_| Question::parse(reader))
+            .collect();
+
+        Packet::builder()
+            .header(header)
+            .questions(questions)
+            .build()
     }
 }
 
@@ -51,7 +60,7 @@ mod tests {
     use super::Packet;
 
     #[test]
-    fn test() {
+    fn test_parse() {
         let mut header = Header::default();
         header.id = 99;
         let packet = Packet::builder()
@@ -61,17 +70,29 @@ mod tests {
                 record_class: RecordClass::IN,
                 record_type: RecordType::A,
             })
-            .answer(Answer {
-                name: Label("codecrafters.io".to_string()),
-                answer_type: RecordType::A,
-                class: RecordClass::IN,
-                ttl: 60,
-                rdata: RData("8.8.8.8".to_string()),
-            })
             .build();
         let packet_byte = packet.as_bytes();
         let mut reader = Cursor::new(&packet_byte);
         let header = Header::parse(&mut reader);
         assert_eq!(header.id, 99);
+    }
+    #[test]
+    fn test_as_bytes() {
+        let mut header = Header::default();
+        header.qdcount = 1;
+        eprintln!("{:?}", header.as_bytes())
+    }
+
+    #[test]
+    fn test_parse_2() {
+        let bytes = vec![
+            249, 79, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 12, 99, 111, 100, 101, 99, 114, 97, 102, 116,
+            101, 114, 115, 2, 105, 111, 0, 0, 1, 0, 1,
+        ];
+        let mut reader = Cursor::new(bytes);
+        let header = Header::parse(&mut reader);
+        let alp = vec![99, 111, 100, 101, 99, 114, 97, 102, 116, 101, 114, 115];
+        let s = String::from_utf8(alp).unwrap();
+        eprintln!("s: {}, Header {:?}", s, header);
     }
 }

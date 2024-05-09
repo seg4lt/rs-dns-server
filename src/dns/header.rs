@@ -56,7 +56,13 @@ where
     R: Read,
 {
     fn parse(reader: &mut R) -> Self {
-        let mut header = Header::default().read_id(reader).read_flags(reader);
+        let mut header = Header::default()
+            .read_id(reader)
+            .read_flags(reader)
+            .read_qd_count(reader)
+            .read_an_count(reader)
+            .read_ns_count(reader)
+            .read_ar_count(reader);
         header
     }
 }
@@ -69,6 +75,29 @@ impl Header {
             .expect("unable to read dns header id");
         self.id = u16::from_be_bytes(buf);
         self
+    }
+    fn read_qd_count<R: Read>(mut self, reader: &mut R) -> Self {
+        self.qdcount = Self::read_two_byte_number(reader);
+        self
+    }
+    fn read_an_count<R: Read>(mut self, reader: &mut R) -> Self {
+        self.ancount = Self::read_two_byte_number(reader);
+        self
+    }
+    fn read_ns_count<R: Read>(mut self, reader: &mut R) -> Self {
+        self.nscount = Self::read_two_byte_number(reader);
+        self
+    }
+    fn read_ar_count<R: Read>(mut self, reader: &mut R) -> Self {
+        self.arcount = Self::read_two_byte_number(reader);
+        self
+    }
+    fn read_two_byte_number<R: Read>(reader: &mut R) -> u16 {
+        let mut buf: [u8; 2] = [0; 2];
+        reader
+            .read_exact(&mut buf)
+            .expect("unable to read two bytes of number");
+        u16::from_be_bytes(buf)
     }
     fn read_flags<R: Read>(mut self, reader: &mut R) -> Self {
         let mut buf: [u8; 2] = [0; 2];

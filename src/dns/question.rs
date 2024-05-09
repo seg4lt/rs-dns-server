@@ -1,4 +1,6 @@
-use crate::common::AsBytes;
+use std::io::Read;
+
+use crate::common::{AsBytes, Parse};
 
 use super::{Label, RecordClass, RecordType};
 
@@ -17,11 +19,28 @@ impl AsBytes for Question {
         return buf;
     }
 }
+impl<R> Parse<R> for Question
+where
+    R: Read,
+{
+    fn parse(reader: &mut R) -> Self {
+        let name = Label::parse(reader);
+        let record_type = RecordType::parse(reader);
+        let record_class = RecordClass::parse(reader);
+        Self {
+            name,
+            record_type,
+            record_class,
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {
+    use std::io::Cursor;
+
     use crate::{
-        common::AsBytes,
+        common::{AsBytes, Parse},
         dns::{question::Question, Label, RecordClass, RecordType},
     };
 
@@ -41,5 +60,21 @@ mod tests {
                 0x0, 0x2
             ]
         )
+    }
+
+    #[test]
+    fn test_parse() {
+        let message = Question {
+            name: Label("google.com".to_string()),
+            record_type: RecordType::A,
+            record_class: RecordClass::IN,
+        };
+        let mut actual_bytes = message.as_bytes();
+        let mut reader = Cursor::new(actual_bytes);
+
+        let parsed = Question::parse(&mut reader);
+        assert_eq!(parsed.name.0, message.name.0);
+        assert_eq!(parsed.record_type, message.record_type);
+        assert_eq!(parsed.record_class, message.record_class);
     }
 }
