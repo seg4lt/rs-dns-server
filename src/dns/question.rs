@@ -8,6 +8,7 @@ pub struct Question {
     pub record_type: RecordType,
     pub record_class: RecordClass,
 }
+
 impl AsBytes for Question {
     fn as_bytes(&self) -> Vec<u8> {
         let mut buf = self.name.as_bytes();

@@ -43,9 +43,7 @@ impl AsBytes for Header {
     fn as_bytes(&self) -> Vec<u8> {
         let mut bytes: [u8; 12] = [0; 12];
         bytes[0..2].copy_from_slice(&self.id.to_be_bytes());
-        // bytes[2] = 0b1000_0000;
-        // bytes[3] = 0b0000_0000;
-        bytes[2..4].copy_from_slice(&self.get_flags_bytes());
+        bytes[2..4].copy_from_slice(&self.flags_as_bytes());
         bytes[4..6].copy_from_slice(&self.qdcount.to_be_bytes());
         bytes[6..8].copy_from_slice(&self.ancount.to_be_bytes());
         bytes[8..10].copy_from_slice(&self.nscount.to_be_bytes());
@@ -105,7 +103,10 @@ impl Header {
 
         self
     }
-    fn get_flags_bytes(&self) -> [u8; 2] {
+
+    /// Create a bits representation for flags that we can send as paylaod
+    /// This will return exactly 16 bit (2 bytes) value
+    fn flags_as_bytes(&self) -> [u8; 2] {
         let mut buf: u16 = 0;
 
         let mut qr = self.qr;
