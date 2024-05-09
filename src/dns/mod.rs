@@ -4,7 +4,7 @@ use std::io::Read;
 
 use anyhow::Context;
 
-use crate::common::{AsBytes, Parse};
+use crate::common::{AsBytes, DnsReader, Parse};
 pub mod answer;
 pub mod header;
 pub mod packet;
@@ -55,11 +55,8 @@ impl AsBytes for RecordType {
         return value.to_be_bytes().to_vec();
     }
 }
-impl<R> Parse<R> for RecordType
-where
-    R: Read,
-{
-    fn parse(reader: &mut R) -> Self {
+impl Parse for RecordType {
+    fn parse(reader: &mut DnsReader) -> Self {
         use RecordType::*;
         let mut buf: [u8; 2] = [0; 2];
         reader
@@ -93,11 +90,8 @@ impl AsBytes for RecordClass {
     }
 }
 
-impl<R> Parse<R> for RecordClass
-where
-    R: Read,
-{
-    fn parse(reader: &mut R) -> Self {
+impl Parse for RecordClass {
+    fn parse(reader: &mut DnsReader) -> Self {
         use RecordClass::*;
         let mut buf: [u8; 2] = [0; 2];
         reader
@@ -131,11 +125,8 @@ impl AsBytes for Label {
         labels
     }
 }
-impl<R> Parse<R> for Label
-where
-    R: Read,
-{
-    fn parse(reader: &mut R) -> Self {
+impl Parse for Label {
+    fn parse(reader: &mut DnsReader) -> Self {
         let mut label_parts = vec![];
         loop {
             let mut length: [u8; 1] = [0; 1];
@@ -162,7 +153,7 @@ where
 mod tests {
     use std::io::Cursor;
 
-    use crate::common::{AsBytes, Parse};
+    use crate::common::{AsBytes, DnsReader, Parse};
 
     use super::Label;
 
@@ -177,7 +168,7 @@ mod tests {
     #[test]
     fn test_parse() {
         let label = Label("example.com".to_string()).as_bytes();
-        let mut reader = Cursor::new(label);
+        let mut reader = DnsReader::new(&label);
         assert_eq!("example.com", Label::parse(&mut reader).0)
     }
 }

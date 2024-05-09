@@ -1,9 +1,9 @@
-use std::{io::Cursor, net::UdpSocket};
+use std::net::UdpSocket;
 
 use tracing::{debug, error, info};
 
 use crate::{
-    common::{AsBytes, Parse},
+    common::{AsBytes, DnsReader, Parse},
     config::setup_log,
     dns::{
         answer::{Answer, RData},
@@ -28,8 +28,8 @@ fn main() {
             Ok((size, source)) => {
                 info!("Received {} bytes from {}", size, source);
                 debug!("Received buffer {:?}", &buf[0..size]);
-                let mut reader = Cursor::new(buf);
-                let received_packet = Packet::parse(&mut reader);
+                let mut dns_reader = DnsReader::new(&buf);
+                let received_packet = Packet::parse(&mut dns_reader);
 
                 let packet = Packet::builder()
                     .header(received_packet.header)

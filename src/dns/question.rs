@@ -1,6 +1,6 @@
 use std::io::Read;
 
-use crate::common::{AsBytes, Parse};
+use crate::common::{AsBytes, DnsReader, Parse};
 
 use super::{Label, RecordClass, RecordType};
 
@@ -19,11 +19,8 @@ impl AsBytes for Question {
         return buf;
     }
 }
-impl<R> Parse<R> for Question
-where
-    R: Read,
-{
-    fn parse(reader: &mut R) -> Self {
+impl Parse for Question {
+    fn parse(reader: &mut DnsReader) -> Self {
         let name = Label::parse(reader);
         let record_type = RecordType::parse(reader);
         let record_class = RecordClass::parse(reader);
@@ -40,7 +37,7 @@ mod tests {
     use std::io::Cursor;
 
     use crate::{
-        common::{AsBytes, Parse},
+        common::{AsBytes, DnsReader, Parse},
         dns::{question::Question, Label, RecordClass, RecordType},
     };
 
@@ -70,7 +67,7 @@ mod tests {
             class: RecordClass::IN,
         };
         let mut actual_bytes = message.as_bytes();
-        let mut reader = Cursor::new(actual_bytes);
+        let mut reader = DnsReader::new(&actual_bytes);
 
         let parsed = Question::parse(&mut reader);
         assert_eq!(parsed.name.0, message.name.0);

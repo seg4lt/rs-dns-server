@@ -4,7 +4,7 @@ use tracing::info;
 
 use crate::{
     bits, bits16,
-    common::{binary_macros::push_bits, AsBytes, Parse},
+    common::{binary_macros::push_bits, AsBytes, DnsReader, Parse},
 };
 
 /// DnsHeader represents the header of a DNS packet.
@@ -51,11 +51,8 @@ impl AsBytes for Header {
         return bytes.to_vec();
     }
 }
-impl<R> Parse<R> for Header
-where
-    R: Read,
-{
-    fn parse(reader: &mut R) -> Self {
+impl Parse for Header {
+    fn parse(reader: &mut DnsReader) -> Self {
         let mut header = Header::default()
             .read_id(reader)
             .read_flags(reader)
@@ -68,7 +65,7 @@ where
 }
 
 impl Header {
-    fn read_id<R: Read>(mut self, reader: &mut R) -> Self {
+    fn read_id(mut self, reader: &mut DnsReader) -> Self {
         let mut buf: [u8; 2] = [0; 2];
         reader
             .read_exact(&mut buf)
@@ -76,30 +73,30 @@ impl Header {
         self.id = u16::from_be_bytes(buf);
         self
     }
-    fn read_qd_count<R: Read>(mut self, reader: &mut R) -> Self {
+    fn read_qd_count(mut self, reader: &mut DnsReader) -> Self {
         self.qdcount = Self::read_two_byte_number(reader);
         self
     }
-    fn read_an_count<R: Read>(mut self, reader: &mut R) -> Self {
+    fn read_an_count(mut self, reader: &mut DnsReader) -> Self {
         self.ancount = Self::read_two_byte_number(reader);
         self
     }
-    fn read_ns_count<R: Read>(mut self, reader: &mut R) -> Self {
+    fn read_ns_count(mut self, reader: &mut DnsReader) -> Self {
         self.nscount = Self::read_two_byte_number(reader);
         self
     }
-    fn read_ar_count<R: Read>(mut self, reader: &mut R) -> Self {
+    fn read_ar_count(mut self, reader: &mut DnsReader) -> Self {
         self.arcount = Self::read_two_byte_number(reader);
         self
     }
-    fn read_two_byte_number<R: Read>(reader: &mut R) -> u16 {
+    fn read_two_byte_number(reader: &mut DnsReader) -> u16 {
         let mut buf: [u8; 2] = [0; 2];
         reader
             .read_exact(&mut buf)
             .expect("unable to read two bytes of number");
         u16::from_be_bytes(buf)
     }
-    fn read_flags<R: Read>(mut self, reader: &mut R) -> Self {
+    fn read_flags(mut self, reader: &mut DnsReader) -> Self {
         let mut buf: [u8; 2] = [0; 2];
         reader
             .read_exact(&mut buf)
@@ -194,7 +191,7 @@ impl Header {
 mod tests {
     use std::io::Cursor;
 
-    use crate::common::{AsBytes, Parse};
+    use crate::common::{AsBytes, DnsReader, Parse};
 
     use super::Header;
 
@@ -216,7 +213,7 @@ mod tests {
             arcount: 1,
         };
         let byte = header.as_bytes();
-        let mut reader = Cursor::new(byte);
+        let mut reader = DnsReader::new(&byte[..]);
 
         let parsed = Header::parse(&mut reader);
         assert_eq!(header.id, parsed.id);
