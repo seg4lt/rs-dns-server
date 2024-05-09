@@ -47,9 +47,7 @@ mod tests {
     #[test]
     fn test_dns_answer() {
         let answer = Answer {
-            name: Label {
-                label: "google.com".to_string(),
-            },
+            name: Label("google.com".to_string()),
             answer_type: RecordType::A,
             class: RecordClass::IN,
             ttl: 60,

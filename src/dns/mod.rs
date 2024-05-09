@@ -74,13 +74,12 @@ impl AsBytes for RecordClass {
 }
 
 #[derive(Debug)]
-pub struct Label {
-    pub label: String,
-}
+pub struct Label(pub String);
+
 impl AsBytes for Label {
     fn as_bytes(&self) -> Vec<u8> {
         let mut labels = self
-            .label
+            .0
             .split(".")
             .map(|label| {
                 let len = label.len();

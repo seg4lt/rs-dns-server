@@ -57,16 +57,12 @@ mod tests {
         let packet = Packet::builder()
             .header(header)
             .question(Question {
-                name: Label {
-                    label: "codecrafters.io".to_string(),
-                },
+                name: Label("codecrafters.io".to_string()),
                 record_class: RecordClass::IN,
                 record_type: RecordType::A,
             })
             .answer(Answer {
-                name: Label {
-                    label: "codecrafters.io".to_string(),
-                },
+                name: Label("codecrafters.io".to_string()),
                 answer_type: RecordType::A,
                 class: RecordClass::IN,
                 ttl: 60,

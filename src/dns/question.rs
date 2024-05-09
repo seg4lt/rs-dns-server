@@ -27,9 +27,7 @@ mod tests {
     #[test]
     fn test_dns_message() {
         let message = Question {
-            name: Label {
-                label: "google.com".to_string(),
-            },
+            name: Label("google.com".to_string()),
             record_type: RecordType::A,
             record_class: RecordClass::IN,
         };
