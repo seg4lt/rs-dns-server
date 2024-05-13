@@ -49,8 +49,9 @@ mod tests {
         dns::{
             answer::{Answer, RData},
             header::Header,
+            label::Label,
             question::Question,
-            Label, RecordClass, RecordType,
+            RecordClass, RecordType,
         },
     };
 

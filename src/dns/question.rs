@@ -7,7 +7,7 @@ use crate::{
     common::{AsBytes, DnsReader, Parse},
 };
 
-use super::{Label, RecordClass, RecordType};
+use super::{label::Label, RecordClass, RecordType};
 
 #[derive(Debug)]
 pub struct Question {
@@ -43,7 +43,7 @@ mod tests {
 
     use crate::{
         common::{AsBytes, DnsReader, Parse},
-        dns::{question::Question, Label, RecordClass, RecordType},
+        dns::{label::Label, question::Question, RecordClass, RecordType},
     };
 
     #[test]

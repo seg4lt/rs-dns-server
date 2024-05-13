@@ -1,6 +1,6 @@
 use crate::common::AsBytes;
 
-use super::{Label, RecordClass, RecordType};
+use super::{label::Label, RecordClass, RecordType};
 
 #[derive(Debug)]
 pub struct Answer {
@@ -39,7 +39,7 @@ impl AsBytes for RData {
 mod tests {
     use crate::{
         common::AsBytes,
-        dns::{Label, RecordClass, RecordType},
+        dns::{label::Label, RecordClass, RecordType},
     };
 
     use super::Answer;
