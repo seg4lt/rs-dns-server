@@ -18,7 +18,8 @@ impl AsBytes for Answer {
         buf.extend(self.class.as_bytes());
         buf.extend(self.ttl.to_be_bytes());
         let rdata = self.rdata.as_bytes();
-        buf.extend(rdata.len().to_be_bytes());
+        let len = rdata.len() as u16;
+        buf.extend(len.to_be_bytes());
         buf.extend(rdata);
         buf
     }
@@ -37,6 +38,8 @@ impl AsBytes for RData {
 
 #[cfg(test)]
 mod tests {
+    use pretty_assertions::assert_eq;
+
     use crate::{
         common::AsBytes,
         dns::{label::Label, RecordClass, RecordType},
@@ -56,8 +59,14 @@ mod tests {
         assert_eq!(
             answer.as_bytes(),
             vec![
-                6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109, 0, 0, 1, 0, 1, 0, 0, 0, 60, 0, 0,
-                0, 0, 0, 0, 0, 4, 8, 8, 8, 8
+                6, // length
+                103, 111, 111, 103, 108, 101, // google
+                3,   // length
+                99, 111, 109, // com
+                0,   // label end
+                0, 1, 0, 1, // class and type
+                0, 0, 0, 60, // ttl 4-byte
+                0, 4, 8, 8, 8, 8
             ]
         );
     }
