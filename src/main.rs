@@ -30,6 +30,7 @@ fn main() {
                 debug!("Received buffer {:?}", &buf[0..size]);
                 let mut dns_reader = DnsReader::new(&buf);
                 let received_packet = Packet::parse(&mut dns_reader);
+                tracing::debug!("Received packet: {:#?}", received_packet);
 
                 let packet = Packet::builder()
                     .header(received_packet.header)
@@ -48,7 +49,9 @@ fn main() {
                     )
                     .questions(received_packet.questions)
                     .build();
+                tracing::debug!("Response packet: {:#?}", packet);
                 let response = packet.as_bytes();
+                tracing::debug!("Response bytes: {:?}", response);
                 udp_socket
                     .send_to(&response, source)
                     .expect("Failed to send response");

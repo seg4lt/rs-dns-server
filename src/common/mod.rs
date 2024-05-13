@@ -10,7 +10,7 @@ pub trait AsBytes {
 pub enum ParseError {
     #[error("Unable to parse the data")]
     ParseError(#[from] std::io::Error),
-    #[error("Unabl to read {n} bytes, current position = {cur_pos}, buf_length = {buf_length}")]
+    #[error("Unable to read {n} bytes, current position = {cur_pos}, buf_length = {buf_length}")]
     BufOverflow {
         cur_pos: usize,
         n: usize,
@@ -22,6 +22,8 @@ pub trait Parse {
     fn parse(reader: &mut DnsReader) -> Self;
 }
 
+/// Crude implementation of Reader, probably can use Cursor but wanted to code this myself :D
+#[derive(Debug)]
 pub struct DnsReader<'a> {
     pub buf: &'a [u8],
     pub cur_pos: usize,
@@ -34,7 +36,14 @@ impl<'a> DnsReader<'a> {
             cur_pos: 0,
         }
     }
+
     pub fn read_exact(&mut self, target_buf: &mut [u8]) -> anyhow::Result<()> {
+        self.peek_exact(target_buf)?;
+        self.cur_pos += target_buf.len();
+        Ok(())
+    }
+
+    pub fn peek_exact(&mut self, target_buf: &mut [u8]) -> anyhow::Result<()> {
         let len = target_buf.len();
         let upto = self.cur_pos + len;
         let buf_len = self.buf.len();
@@ -47,7 +56,6 @@ impl<'a> DnsReader<'a> {
         }
         let source_buf = &self.buf[self.cur_pos..upto];
         target_buf.copy_from_slice(source_buf);
-        self.cur_pos += len;
         Ok(())
     }
 }

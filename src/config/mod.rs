@@ -9,6 +9,7 @@ macro_rules! fdbg {
 }
 
 pub fn setup_log() -> anyhow::Result<()> {
+    color_eyre::install().expect("Unable to setup color eyre");
     let subscriber = tracing_subscriber::fmt()
         // Use a more compact, abbreviated log format
         .compact()

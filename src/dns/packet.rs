@@ -45,6 +45,7 @@ mod tests {
 
     use crate::{
         common::{AsBytes, DnsReader, Parse},
+        config::setup_log,
         dns::{
             answer::{Answer, RData},
             header::Header,
@@ -117,18 +118,78 @@ mod tests {
         assert_eq!(packet.questions.first().unwrap().name.0, "codecrafters.io");
     }
 
-    // #[test]
+    #[test]
     fn test_parse_compression_packet() {
+        setup_log();
         let bytes = vec![
-            198, 32, 1, 0, 0, 2, 0, 0, 0, 0, 0, 0, 3, 97, 98, 99, 17, 108, 111, 110, 103, 97, 115,
-            115, 100, 111, 109, 97, 105, 110, 110, 97, 109, 101, 3, 99, 111, 109, 0, 0, 1, 0, 1, 3,
+            198, 32, 1, 0, 0, //
+            //
+            2, // << qdcount
+            0, 0, 0, 0, 0, 0, //
+            //
+            3, // 3 length
+            97, 98, 99, //
+            //
+            17, // 17 length
+            108, 111, 110, 103, 97, 115, 115, 100, 111, 109, 97, 105, 110, 110, 97, 109, 101,
+            //
+            3, // 3 length
+            99, 111, 109, //
+            //
+            0, // 0x00 for q end
+            //
+            0, 1, 0, 1, // These 4 bytes are type and class
+            //
+            3, // ??
             100, 101, 102, 192, 16, 0, 1, 0, 1,
         ];
         let mut reader = DnsReader::new(&bytes);
         let packet = Packet::parse(&mut reader);
         eprintln!("PACKET: {:?}", packet);
-        assert_eq!(packet.header.id, 63823);
-        assert_eq!(packet.header.qdcount, 1);
-        assert_eq!(packet.questions.first().unwrap().name.0, "codecrafters.io");
+        assert_eq!(packet.header.id, 50720);
+        assert_eq!(packet.header.qdcount, 2);
+        assert_eq!(packet.questions.len(), 2);
+        assert_eq!(
+            packet.questions.first().unwrap().name.0,
+            "abc.longassdomainname.com"
+        );
+        assert_eq!(
+            packet.questions.last().unwrap().name.0,
+            "def.longassdomainname.com"
+        );
+
+        let res_packet = Packet::builder()
+            .header(packet.header)
+            .answers(
+                packet
+                    .questions
+                    .iter()
+                    .map(|q| Answer {
+                        name: q.name.clone(),
+                        typez: RecordType::A,
+                        class: RecordClass::IN,
+                        ttl: 60,
+                        rdata: RData("8.8.8.8".to_string()),
+                    })
+                    .collect(),
+            )
+            .questions(packet.questions)
+            .build();
+        assert_eq!(
+            res_packet.as_bytes(),
+            vec![
+                198, 32, 129, 0, 0, 2, 0, 2, 0, 0, 0, 0, // Header
+                //
+                3, 97, 98, 99, 17, 108, 111, 110, 103, 97, 115, 115, 100, 111, 109, 97, 105, 110,
+                110, 97, 109, 101, 3, 99, 111, 109, 0, 0, 1, 0, 1, 3, 100, 101, 102, 17, 108, 111,
+                110, 103, 97, 115, 115, 100, 111, 109, 97, 105, 110, 110, 97, 109, 101, 3, 99, 111,
+                109, 0, 0, 1, 0, 1, 3, 97, 98, 99, 17, 108, 111, 110, 103, 97, 115, 115, 100, 111,
+                109, 97, 105, 110, 110, 97, 109, 101, 3, 99, 111, 109, 0, 0, 1, 0, 1, 0, 0, 0, 60,
+                0, 0, 0, 0, 0, 0, 0, 4, 8, 8, 8, 8, 3, 100, 101, 102, 17, 108, 111, 110, 103, 97,
+                115, 115, 100, 111, 109, 97, 105, 110, 110, 97, 109, 101, 3, 99, 111, 109, 0, 0, 1,
+                0, 1, 0, 0, 0, 60, 0, 0, 0, 0, 0, 0, 0, 4, 8, 8, 8, 8
+            ]
+        );
+        assert_eq!(res_packet.as_bytes().len(), 168);
     }
 }

@@ -1,6 +1,11 @@
 use std::io::Read;
 
-use crate::common::{AsBytes, DnsReader, Parse};
+use tracing::debug;
+
+use crate::{
+    bits, bits16,
+    common::{AsBytes, DnsReader, Parse},
+};
 
 use super::{Label, RecordClass, RecordType};
 
@@ -21,11 +26,11 @@ impl AsBytes for Question {
 }
 impl Parse for Question {
     fn parse(reader: &mut DnsReader) -> Self {
-        let name = Label::parse(reader);
+        let label = Label::parse(reader);
         let record_type = RecordType::parse(reader);
         let record_class = RecordClass::parse(reader);
         Self {
-            name,
+            name: label,
             typez: record_type,
             class: record_class,
         }

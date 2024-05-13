@@ -4,7 +4,10 @@ use std::io::Read;
 
 use anyhow::Context;
 
-use crate::common::{AsBytes, DnsReader, Parse};
+use crate::{
+    bits,
+    common::{AsBytes, DnsReader, Parse},
+};
 pub mod answer;
 pub mod header;
 pub mod packet;
@@ -137,6 +140,27 @@ impl Parse for Label {
             if length == 0x00 {
                 break;
             }
+
+            match length {
+                0x00 => break,
+                // if msb is 11, then it s the pointer, 01 and 10 are reserved but we don't care
+                n if bits!(@msb; length as u8, 2) & 0b11 > 1 => {
+                    let mut one_more: [u8; 1] = [0; 1];
+                    reader
+                        .read_exact(&mut one_more)
+                        .expect("should be able to read one more byte to get the pointer location");
+                    let offset = (bits!(@lsb; length as u8, 6) + one_more[0]) as usize;
+                    tracing::debug!(offset, "Reading from pointer");
+                    let mut pointer_reader = DnsReader {
+                        buf: reader.buf,
+                        cur_pos: offset,
+                    };
+                    let label = Label::parse(&mut pointer_reader);
+                    label_parts.push(label.0);
+                    return Label(label_parts.join("."));
+                }
+                _ => {} // Not a special case, parse as normal
+            }
             let mut content = vec![0u8; length];
             reader
                 .read_exact(&mut content)
@@ -170,5 +194,16 @@ mod tests {
         let label = Label("example.com".to_string()).as_bytes();
         let mut reader = DnsReader::new(&label);
         assert_eq!("example.com", Label::parse(&mut reader).0)
+    }
+
+    #[test]
+    fn test_num_from_be_byte() {
+        let bytes: [u8; 2] = [11, 233];
+        let num = u16::from_be_bytes(bytes);
+        assert_eq!(num, 3049);
+
+        let bytes: [u8; 2] = [175, 200];
+        let num = u16::from_be_bytes(bytes);
+        assert_eq!(num, 45000);
     }
 }
