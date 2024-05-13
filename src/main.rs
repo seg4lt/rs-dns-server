@@ -3,7 +3,7 @@ use std::net::UdpSocket;
 use tracing::{debug, error, info};
 
 use crate::{
-    common::{AsBytes, DnsReader, Parse},
+    common::{dns_reader::DnsReader, AsBytes, Parse},
     config::setup_log,
     dns::{
         answer::{Answer, RData},

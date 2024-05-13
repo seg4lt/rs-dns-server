@@ -6,7 +6,7 @@ use anyhow::Context;
 
 use crate::{
     bits,
-    common::{AsBytes, DnsReader, Parse},
+    common::{dns_reader::DnsReader, AsBytes, Parse},
 };
 pub mod answer;
 pub mod header;
@@ -107,5 +107,3 @@ impl Parse for RecordClass {
         }
     }
 }
-
-

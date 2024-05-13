@@ -4,7 +4,7 @@ use tracing::info;
 
 use crate::{
     bits, bits16,
-    common::{binary_macros::push_bits, AsBytes, DnsReader, Parse},
+    common::{binary_macros::push_bits, dns_reader::DnsReader, AsBytes, Parse},
 };
 
 /// DnsHeader represents the header of a DNS packet.
@@ -191,7 +191,7 @@ impl Header {
 mod tests {
     use std::io::Cursor;
 
-    use crate::common::{AsBytes, DnsReader, Parse};
+    use crate::common::{dns_reader::DnsReader, AsBytes, Parse};
 
     use super::Header;
 

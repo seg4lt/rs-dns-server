@@ -4,7 +4,7 @@ use tracing::debug;
 
 use crate::{
     bits, bits16,
-    common::{AsBytes, DnsReader, Parse},
+    common::{dns_reader::DnsReader, AsBytes, Parse},
 };
 
 use super::{label::Label, RecordClass, RecordType};
@@ -42,7 +42,7 @@ mod tests {
     use std::io::Cursor;
 
     use crate::{
-        common::{AsBytes, DnsReader, Parse},
+        common::{dns_reader::DnsReader, AsBytes, Parse},
         dns::{label::Label, question::Question, RecordClass, RecordType},
     };
 

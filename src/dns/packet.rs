@@ -1,6 +1,6 @@
 use tracing_subscriber::field::display::Messages;
 
-use crate::common::{AsBytes, DnsReader, Parse};
+use crate::common::{dns_reader::DnsReader, AsBytes, Parse};
 
 use super::answer::Answer;
 use super::header::Header;
@@ -44,7 +44,7 @@ mod tests {
     use std::io::{BufRead, BufReader, Cursor, Read};
 
     use crate::{
-        common::{AsBytes, DnsReader, Parse},
+        common::{dns_reader::DnsReader, AsBytes, Parse},
         config::setup_log,
         dns::{
             answer::{Answer, RData},

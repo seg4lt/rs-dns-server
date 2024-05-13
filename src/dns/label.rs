@@ -2,7 +2,7 @@ use anyhow::Context;
 
 use crate::{
     bits,
-    common::{AsBytes, DnsReader, Parse},
+    common::{dns_reader::DnsReader, AsBytes, Parse},
 };
 
 #[derive(Debug, Clone)]
@@ -22,6 +22,7 @@ impl AsBytes for Label {
             })
             .flat_map(|f| f.into_iter())
             .collect::<Vec<u8>>();
+        // Label end is represented by 0x00
         labels.push(0x00);
         labels
     }
@@ -75,7 +76,7 @@ impl Parse for Label {
 mod tests {
     use std::io::Cursor;
 
-    use crate::common::{AsBytes, DnsReader, Parse};
+    use crate::common::{dns_reader::DnsReader, AsBytes, Parse};
 
     use super::Label;
 
