@@ -1,5 +1,7 @@
 use tracing::{subscriber::set_global_default, Level};
 
+pub mod cli_args;
+
 #[macro_export]
 macro_rules! fdbg {
     ($msg:literal $(,)?) => {
