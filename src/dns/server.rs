@@ -32,7 +32,7 @@ impl DnsServer {
                 }
             };
             let packet = Self::read_packet(&mut buf, size);
-            let response = Self::get_response_byte(&socket, &packet);
+            let response = Self::get_response_byte(&socket, packet);
             socket
                 .send_to(&response, source)
                 .context(fdbg!("Failed to send response"))
@@ -40,39 +40,40 @@ impl DnsServer {
         }
     }
 
-    fn get_response_byte(socket: &UdpSocket, packet: &Packet) -> Vec<u8> {
+    fn get_response_byte(socket: &UdpSocket, packet: Packet) -> Vec<u8> {
         match CliArgs::resolver() {
-            None => Self::get_mock_response_byte(packet),
+            None => get_mock_response_byte(packet),
             Some(addr) => DnsResolver::new(addr)
                 .resolve(&socket, packet.split())
+                // .resolve_with_new_socket(packet.split())
                 .merge()
                 .as_bytes(),
         }
-    }
-
-    fn get_mock_response_byte(packet: &Packet) -> Vec<u8> {
-        let packet = Packet::builder()
-            .header(packet.header.clone())
-            .answers(
-                packet
-                    .questions
-                    .iter()
-                    .map(|q| Answer {
-                        name: q.name.clone(),
-                        typez: RecordType::A,
-                        class: RecordClass::IN,
-                        ttl: 60,
-                        rdata: RData("8.8.8.8".to_string()),
-                    })
-                    .collect(),
-            )
-            .questions(packet.questions.clone())
-            .build();
-        packet.as_bytes()
     }
 
     fn read_packet(buf: &mut [u8], packet_size: usize) -> Packet {
         let mut dns_reader = DnsReader::new(&buf);
         Packet::parse(&mut dns_reader)
     }
+}
+
+fn get_mock_response_byte(packet: Packet) -> Vec<u8> {
+    let packet = Packet::builder()
+        .header(packet.header.clone())
+        .answers(
+            packet
+                .questions
+                .iter()
+                .map(|q| Answer {
+                    name: q.name.clone(),
+                    typez: RecordType::A,
+                    class: RecordClass::IN,
+                    ttl: 60,
+                    rdata: RData("8.8.8.8".to_string()),
+                })
+                .collect(),
+        )
+        .questions(packet.questions)
+        .build();
+    packet.as_bytes()
 }
