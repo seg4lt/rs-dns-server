@@ -15,6 +15,63 @@ pub struct Packet {
     pub answers: Vec<Answer>,
 }
 
+pub trait Merge<T> {
+    fn merge(&self) -> T;
+}
+
+impl Merge<Packet> for Vec<Packet> {
+    fn merge(&self) -> Packet {
+        let count = self.len();
+        Packet::builder()
+            .header(Header {
+                id: rand::random(),
+                qr: 1,
+                opcode: 0,
+                aa: 0,
+                tc: 0,
+                rd: 1,
+                ra: 0,
+                z: 0,
+                rcode: 0,
+                qdcount: count as u16,
+                ancount: count as u16,
+                nscount: 0,
+                arcount: 0,
+            })
+            .questions(self.iter().flat_map(|p| p.questions.clone()).collect())
+            .answers(self.iter().flat_map(|p| p.answers.clone()).collect())
+            .build()
+    }
+}
+
+impl Packet {
+    pub fn split(&self) -> Vec<Self> {
+        self.questions
+            .iter()
+            .map(|question| {
+                Packet::builder()
+                    .header(Header {
+                        id: rand::random(),
+                        qr: self.header.qr,
+                        opcode: self.header.opcode,
+                        aa: self.header.aa,
+                        tc: self.header.tc,
+                        rd: self.header.rd,
+                        ra: self.header.ra,
+                        z: self.header.z,
+                        rcode: self.header.rcode,
+                        qdcount: 1,
+                        ancount: self.header.ancount,
+                        nscount: self.header.nscount,
+                        arcount: self.header.arcount,
+                    })
+                    .question(question.clone())
+                    .build()
+            })
+            .collect()
+    }
+}
+
 impl AsBytes for Packet {
     fn as_bytes(&self) -> Vec<u8> {
         // in most cases DNS packet shouldn't be more than 512 bytes
@@ -25,6 +82,7 @@ impl AsBytes for Packet {
         buf
     }
 }
+
 impl Parse for Packet {
     fn parse(dns_reader: &mut DnsReader) -> Self {
         let header = Header::parse(dns_reader);
@@ -98,7 +156,7 @@ mod tests {
         assert_eq!(
             bytes,
             vec![
-                0, 0, 128, 0, 0, 1, 0, 1, 0, 0, 0, 0, 12, 99, 111, 100, 101, 99, 114, 97, 102, 116,
+                0, 0, 128, 0, 0, 1, 0, 0, 0, 0, 0, 0, 12, 99, 111, 100, 101, 99, 114, 97, 102, 116,
                 101, 114, 115, 2, 105, 111, 0, 0, 1, 0, 1, 12, 99, 111, 100, 101, 99, 114, 97, 102,
                 116, 101, 114, 115, 2, 105, 111, 0, 0, 1, 0, 1, 0, 0, 0, 60, 0, 4, 8, 8, 8, 8
             ]
@@ -111,6 +169,15 @@ mod tests {
             249, 79, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 12, 99, 111, 100, 101, 99, 114, 97, 102, 116,
             101, 114, 115, 2, 105, 111, 0, 0, 1, 0, 1,
         ];
+        // [8, 215,
+        // 1, 0,
+
+        // 0, 1, << qdcount
+        // 0, 0, << ancount
+        // 0, 0, << nscount
+        //  0, 0, << arcount
+        // 12, 99, 111, 100, 101, 99, 114, 97, 102, 116, 101, 114, 115, 2, 105, 111, 0,
+        //  0, 1, 0, 1]
         let mut reader = DnsReader::new(&bytes);
         let packet = Packet::parse(&mut reader);
 
@@ -121,12 +188,11 @@ mod tests {
 
     #[test]
     fn test_parse_compression_packet() {
-        setup_log();
         let bytes = vec![
-            198, 32, 1, 0, 0, //
-            //
-            2, // << qdcount
-            0, 0, 0, 0, 0, 0, //
+            198, 32, 1, 0, //
+            0, 2, // << qdcount
+            0, 0, // << ancound
+            0, 0, 0, 0, //
             //
             3, // 3 length
             97, 98, 99, //
@@ -141,8 +207,9 @@ mod tests {
             //
             0, 1, 0, 1, // These 4 bytes are type and class
             //
-            3, // ??
-            100, 101, 102, 192, 16, 0, 1, 0, 1,
+            3, 100, 101, 102, // 3 length
+            192, 16, // pointer to existing label
+            0, 1, 0, 1,
         ];
         let mut reader = DnsReader::new(&bytes);
         let packet = Packet::parse(&mut reader);
@@ -179,7 +246,7 @@ mod tests {
         assert_eq!(
             res_packet.as_bytes(),
             vec![
-                198, 32, 129, 0, 0, 2, 0, 2, 0, 0, 0, 0, // Header
+                198, 32, 129, 0, 0, 2, 0, 0, 0, 0, 0, 0, // Header
                 //
                 3, 97, 98, 99, 17, 108, 111, 110, 103, 97, 115, 115, 100, 111, 109, 97, 105, 110,
                 110, 97, 109, 101, 3, 99, 111, 109, 0, 0, 1, 0, 1, 3, 100, 101, 102, 17, 108, 111,

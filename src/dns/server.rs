@@ -1,58 +1,78 @@
 use std::net::UdpSocket;
 
+use anyhow::Context;
 use tracing::{debug, error, info};
 
 use crate::{
     common::{dns_reader::DnsReader, AsBytes, Parse},
+    config::cli_args::CliArgs,
     dns::{
         answer::{Answer, RData},
         packet::Packet,
+        resolver::DnsResolver,
         RecordClass, RecordType,
     },
+    fdbg,
 };
+
+use super::packet::Merge;
 
 pub struct DnsServer {}
 impl DnsServer {
     pub fn start(host: &str, port: &str) {
-        let udp_socket =
-            UdpSocket::bind(format!("{}:{}", host, port)).expect("Failed to bind to address");
+        let addr = format!("{}:{}", host, port);
+        let socket = UdpSocket::bind(addr).expect("Failed to bind to address");
         let mut buf = [0; 512];
-
         loop {
-            let Ok((size, source)) = udp_socket.recv_from(&mut buf) else {
-                error!("Error receiving data");
-                break;
+            let (size, source) = match socket.recv_from(&mut buf) {
+                Ok((size, source)) => (size, source),
+                Err(e) => {
+                    error!("Error receiving data !!!, {e:#?}");
+                    continue;
+                }
             };
-
-            info!("Received {} bytes from {}", size, source);
-            debug!("Received buffer {:?}", &buf[0..size]);
-            let mut dns_reader = DnsReader::new(&buf);
-            let received_packet = Packet::parse(&mut dns_reader);
-            tracing::debug!("Received packet: {:#?}", received_packet);
-
-            let packet = Packet::builder()
-                .header(received_packet.header)
-                .answers(
-                    received_packet
-                        .questions
-                        .iter()
-                        .map(|q| Answer {
-                            name: q.name.clone(),
-                            typez: RecordType::A,
-                            class: RecordClass::IN,
-                            ttl: 60,
-                            rdata: RData("8.8.8.8".to_string()),
-                        })
-                        .collect(),
-                )
-                .questions(received_packet.questions)
-                .build();
-            tracing::debug!("Response packet: {:#?}", packet);
-            let response = packet.as_bytes();
-            tracing::debug!("Response bytes: {:?}", response);
-            udp_socket
+            let packet = Self::read_packet(&mut buf, size);
+            let response = Self::get_response_byte(&socket, &packet);
+            socket
                 .send_to(&response, source)
-                .expect("Failed to send response");
+                .context(fdbg!("Failed to send response"))
+                .unwrap();
         }
+    }
+
+    fn get_response_byte(socket: &UdpSocket, packet: &Packet) -> Vec<u8> {
+        match CliArgs::resolver() {
+            None => Self::get_mock_response_byte(packet),
+            Some(addr) => DnsResolver::new(addr)
+                .resolve(&socket, packet.split())
+                .merge()
+                .as_bytes(),
+        }
+    }
+
+    fn get_mock_response_byte(packet: &Packet) -> Vec<u8> {
+        let packet = Packet::builder()
+            .header(packet.header.clone())
+            .answers(
+                packet
+                    .questions
+                    .iter()
+                    .map(|q| Answer {
+                        name: q.name.clone(),
+                        typez: RecordType::A,
+                        class: RecordClass::IN,
+                        ttl: 60,
+                        rdata: RData("8.8.8.8".to_string()),
+                    })
+                    .collect(),
+            )
+            .questions(packet.questions.clone())
+            .build();
+        packet.as_bytes()
+    }
+
+    fn read_packet(buf: &mut [u8], packet_size: usize) -> Packet {
+        let mut dns_reader = DnsReader::new(&buf);
+        Packet::parse(&mut dns_reader)
     }
 }

@@ -2,7 +2,7 @@ use crate::common::AsBytes;
 
 use super::{label::Label, RecordClass, RecordType};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Answer {
     pub name: Label,
     pub typez: RecordType,
@@ -25,7 +25,7 @@ impl AsBytes for Answer {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct RData(pub String);
 impl AsBytes for RData {
     fn as_bytes(&self) -> Vec<u8> {

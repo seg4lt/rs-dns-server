@@ -2,6 +2,7 @@ use tracing::{subscriber::set_global_default, Level};
 
 pub mod cli_args;
 
+/// A macro to format a debug message with the file and line number
 #[macro_export]
 macro_rules! fdbg {
     ($msg:literal $(,)?) => {

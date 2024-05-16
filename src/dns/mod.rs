@@ -13,6 +13,7 @@ pub mod header;
 pub mod label;
 pub mod packet;
 pub mod question;
+pub mod resolver;
 pub mod server;
 
 /// https://www.rfc-editor.org/rfc/rfc1035#section-3.2.2

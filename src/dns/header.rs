@@ -9,7 +9,7 @@ use crate::{
 
 /// DnsHeader represents the header of a DNS packet.
 /// It occupies 12 bytes in the packet.
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub struct Header {
     /// ID         16 bits    Packet Identifier
     pub id: u16,

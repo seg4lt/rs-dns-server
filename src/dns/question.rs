@@ -9,7 +9,7 @@ use crate::{
 
 use super::{label::Label, RecordClass, RecordType};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Question {
     pub name: Label,
     pub typez: RecordType,
