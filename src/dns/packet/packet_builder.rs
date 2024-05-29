@@ -43,7 +43,7 @@ impl PacketBuilder {
                 z: 0,
                 rcode: if self.header.opcode == 0 { 0 } else { 4 },
                 qdcount: self.questions.len() as u16,
-                ancount: self.header.ancount,
+                ancount: self.answers.len() as u16,
                 nscount: 0,
                 arcount: 0,
             },
