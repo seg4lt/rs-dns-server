@@ -41,14 +41,14 @@ impl DnsServer {
     }
 
     fn get_response_byte(socket: &UdpSocket, packet: Packet) -> Vec<u8> {
-        match CliArgs::resolver() {
-            None => get_mock_response_byte(packet),
-            Some(addr) => DnsResolver::new(addr)
-                .resolve(&socket, packet.split())
-                // .resolve_with_new_socket(packet.split())
-                .merge()
-                .as_bytes(),
-        }
+        return get_mock_response_byte(packet);
+        // match CliArgs::resolver() {
+        //     None => get_mock_response_byte(packet),
+        //     Some(addr) => DnsResolver::new(addr)
+        //         .resolve(&socket, packet.split())
+        //         .merge()
+        //         .as_bytes(),
+        // }
     }
 
     fn read_packet(buf: &mut [u8], packet_size: usize) -> Packet {
@@ -58,6 +58,7 @@ impl DnsServer {
 }
 
 fn get_mock_response_byte(packet: Packet) -> Vec<u8> {
+    tracing::debug!("Sending mock response");
     let packet = Packet::builder()
         .header(packet.header.clone())
         .answers(
