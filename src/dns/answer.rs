@@ -1,10 +1,11 @@
-use crate::common::AsBytes;
+use crate::common::dns_reader::DnsReader;
+use crate::common::{AsBytes, Parse};
 
 use super::{label::Label, RecordClass, RecordType};
 
 #[derive(Debug, Clone)]
 pub struct Answer {
-    pub name: Label,
+    pub label: Label,
     pub typez: RecordType,
     pub class: RecordClass,
     pub ttl: u32,
@@ -13,7 +14,7 @@ pub struct Answer {
 
 impl AsBytes for Answer {
     fn as_bytes(&self) -> Vec<u8> {
-        let mut buf = self.name.as_bytes();
+        let mut buf = self.label.as_bytes();
         buf.extend(self.typez.as_bytes());
         buf.extend(self.class.as_bytes());
         buf.extend(self.ttl.to_be_bytes());
@@ -24,9 +25,54 @@ impl AsBytes for Answer {
         buf
     }
 }
+impl Answer {
+    pub fn parse_ttl(reader: &mut DnsReader) -> u32 {
+        let mut buf: [u8; 4] = [0; 4];
+        reader.read_exact(&mut buf).expect("Unable to read ttl");
+        u32::from_be_bytes(buf)
+    }
+}
+
+impl Parse for Answer {
+    fn parse(reader: &mut DnsReader) -> Self {
+        let label = Label::parse(reader);
+        let typez = RecordType::parse(reader);
+        let class = RecordClass::parse(reader);
+        let ttl = Answer::parse_ttl(reader);
+        let rdata = RData::parse(reader);
+
+        Self {
+            label,
+            typez,
+            class,
+            ttl,
+            rdata,
+        }
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct RData(pub String);
+
+impl Parse for RData {
+    fn parse(reader: &mut DnsReader) -> Self {
+        // RD Length
+        let mut buf: [u8; 2] = [0; 2];
+        reader
+            .read_exact(&mut buf)
+            .expect("Unable to read rd length");
+        let rd_length = u16::from_be_bytes(buf);
+        let mut rdata = vec![0; rd_length as usize];
+        reader.read_exact(&mut rdata).expect("Unable to read rdata");
+        let str = rdata
+            .iter()
+            .map(|r| r.to_string())
+            .fold(String::new(), |acc, x| acc + &x + ".");
+        let str = str.trim_end_matches('.');
+        Self(str.to_string())
+    }
+}
+
 impl AsBytes for RData {
     fn as_bytes(&self) -> Vec<u8> {
         self.0
@@ -50,7 +96,7 @@ mod tests {
     #[test]
     fn test_dns_answer() {
         let answer = Answer {
-            name: Label("google.com".to_string()),
+            label: Label("google.com".to_string()),
             typez: RecordType::A,
             class: RecordClass::IN,
             ttl: 60,

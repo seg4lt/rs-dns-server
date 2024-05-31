@@ -52,18 +52,8 @@ impl Packet {
                 Packet::builder()
                     .header(Header {
                         id: rand::random(),
-                        qr: self.header.qr,
-                        opcode: self.header.opcode,
-                        aa: self.header.aa,
-                        tc: self.header.tc,
-                        rd: self.header.rd,
-                        ra: self.header.ra,
-                        z: self.header.z,
-                        rcode: self.header.rcode,
                         qdcount: 1,
-                        ancount: self.header.ancount,
-                        nscount: self.header.nscount,
-                        arcount: self.header.arcount,
+                        ..self.header.clone()
                     })
                     .question(question.clone())
                     .build()
@@ -89,10 +79,14 @@ impl Parse for Packet {
         let questions: Vec<Question> = (0..header.qdcount)
             .map(|_| Question::parse(dns_reader))
             .collect();
+        let answers: Vec<Answer> = (0..header.ancount)
+            .map(|_| Answer::parse(dns_reader))
+            .collect();
 
         Packet::builder()
             .header(header)
             .questions(questions)
+            .answers(answers)
             .build()
     }
 }
@@ -145,7 +139,7 @@ mod tests {
                 typez: RecordType::A,
             })
             .answer(Answer {
-                name: Label("codecrafters.io".to_string()),
+                label: Label("codecrafters.io".to_string()),
                 typez: RecordType::A,
                 class: RecordClass::IN,
                 ttl: 60,
@@ -233,7 +227,7 @@ mod tests {
                     .questions
                     .iter()
                     .map(|q| Answer {
-                        name: q.name.clone(),
+                        label: q.name.clone(),
                         typez: RecordType::A,
                         class: RecordClass::IN,
                         ttl: 60,

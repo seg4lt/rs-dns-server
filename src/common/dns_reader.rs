@@ -12,7 +12,7 @@ pub struct DnsReader<'a> {
 impl<'a> DnsReader<'a> {
     pub fn new(buf: &'a [u8]) -> Self {
         Self {
-            buf: buf,
+            buf,
             cur_pos: 0,
         }
     }
