@@ -4,16 +4,17 @@ use anyhow::Context;
 use tracing::{debug, error, info};
 
 use crate::{
-    common::{dns_reader::DnsReader, AsBytes, Parse},
+    common::{AsBytes, dns_reader::DnsReader, Parse},
     config::cli_args::CliArgs,
     dns::{
         answer::{Answer, RData},
         packet::Packet,
-        resolver::DnsResolver,
-        RecordClass, RecordType,
+        RecordClass,
+        RecordType, resolver::DnsResolver,
     },
     fdbg,
 };
+use crate::dns::header::Header;
 
 use super::packet::Merge;
 
@@ -42,28 +43,35 @@ impl DnsServer {
     }
 
     fn get_response_byte(socket: &UdpSocket, packet: Packet) -> Vec<u8> {
-        let org_id = packet.header.id;
         match CliArgs::resolver() {
             None => get_mock_response_byte(packet),
             Some(addr) => {
                 let mut resolved = DnsResolver::new(addr)
-                    // .resolve(&socket, packet.split())
                     .resolve_with_new_socket(packet.split())
                     .merge();
-                resolved.header.id = org_id;
-                resolved.as_bytes()
+                Packet::builder()
+                    .header(Header {
+                        qr: resolved.header.qr,
+                        ..packet.header.clone()
+                    })
+                    .questions(resolved.questions)
+                    .answers(resolved.answers)
+                    .build()
+                    .as_bytes()
             }
         }
     }
 
     fn read_packet(buf: &mut [u8], packet_size: usize) -> Packet {
         let mut dns_reader = DnsReader::new(&buf);
-        Packet::parse(&mut dns_reader)
+        let packet = Packet::parse(&mut dns_reader);
+        tracing::debug!("Received packet: {packet:?}");
+        packet
     }
 }
 
 fn get_mock_response_byte(packet: Packet) -> Vec<u8> {
-    tracing::debug!("Sending mock response");
+    debug!("Sending mock response");
     let packet = Packet::builder()
         .header(packet.header.clone())
         .answers(

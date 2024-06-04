@@ -49,7 +49,6 @@ impl Parse for Label {
                         .read_exact(&mut one_more)
                         .expect("should be able to read one more byte to get the pointer location");
                     let offset = (bits!(@lsb; length as u8, 6) + one_more[0]) as usize;
-                    tracing::debug!(offset, "Reading from pointer");
                     let mut pointer_reader = DnsReader {
                         buf: reader.buf,
                         cur_pos: offset,

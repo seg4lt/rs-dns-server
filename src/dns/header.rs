@@ -1,7 +1,9 @@
 use std::{default, io::Read};
 
 use tracing::info;
+use QueryResponse::Reply;
 
+use crate::dns::header::QueryResponse::Question;
 use crate::{
     bits, bits16,
     common::{binary_macros::push_bits, dns_reader::DnsReader, AsBytes, Parse},
@@ -14,9 +16,9 @@ pub struct Header {
     /// ID         16 bits    Packet Identifier
     pub id: u16,
     /// QR         1 bit      Query/Response flag (QR)
-    pub qr: u8,
+    pub qr: QueryResponse,
     /// OPCODE     4 bits     Operation Code (OPCODE)
-    pub opcode: u8,
+    pub opcode: OpCode,
     /// AA         1 bit      Authoritative Answer (AA)
     pub aa: u8,
     /// TC         1 bit      Truncated (TC)
@@ -37,6 +39,65 @@ pub struct Header {
     pub nscount: u16,
     /// ARCOUNT    16 bits    Additional Record Count (ARCOUNT)
     pub arcount: u16,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum OpCode {
+    Query,
+    IQuery,
+    Status,
+    Reserved(u8),
+}
+impl Default for OpCode {
+    fn default() -> Self {
+        return OpCode::Query;
+    }
+}
+impl OpCode {
+    pub fn from_u8(value: u8) -> Self {
+        use OpCode::*;
+        match value {
+            0 => Query,
+            1 => IQuery,
+            2 => Status,
+            _ => Reserved(value),
+        }
+    }
+    pub fn as_u8(&self) -> u8 {
+        use OpCode::*;
+        match self {
+            Query => 0,
+            IQuery => 1,
+            Status => 2,
+            Reserved(value) => *value,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum QueryResponse {
+    Question,
+    Reply,
+}
+impl Default for QueryResponse {
+    fn default() -> Self {
+        return Question;
+    }
+}
+impl QueryResponse {
+    pub fn from_u8(value: u8) -> Self {
+        match value {
+            0 => Question,
+            1 => Reply,
+            _ => panic!("Invalid value for QueryResponse"),
+        }
+    }
+    pub fn as_u8(&self) -> u8 {
+        match self {
+            Question => 0,
+            Reply => 1,
+        }
+    }
 }
 
 impl AsBytes for Header {
@@ -103,10 +164,10 @@ impl Header {
             .expect("unable to read header flags");
         let mut flags = u16::from_be_bytes(buf);
 
-        self.qr = bits16!(@msb; flags, 1) as u8;
+        self.qr = QueryResponse::from_u8(bits16!(@msb; flags, 1) as u8);
         flags = flags << 1;
 
-        self.opcode = bits16!(@msb; flags, 4) as u8;
+        self.opcode = OpCode::from_u8(bits16!(@msb; flags, 4) as u8);
         flags = flags << 4;
 
         self.aa = bits16!(@msb; flags, 1) as u8;
@@ -130,17 +191,17 @@ impl Header {
         self
     }
 
-    /// Create a bits representation for flags that we can send as paylaod
+    /// Create a bits representation for flags that we can send as payload
     /// This will return exactly 16 bit (2 bytes) value
     fn flags_as_bytes(&self) -> [u8; 2] {
         let mut buf: u16 = 0;
 
-        let mut qr = self.qr;
-        qr = qr << 7; // qr is only q bit, so hack is to discard first 7 bits
+        let mut qr = self.qr.as_u8();
+        qr = qr << 7; // qr is only 1 bit, so hack is to discard first 7 bits
         let bit = bits!(@msb; qr, 1);
         push_bits(&mut buf, bit);
 
-        let mut opcode = self.opcode;
+        let mut opcode = self.opcode.as_u8();
         opcode = opcode << 4;
         for _ in 0..4 {
             let bit = bits!(@msb; opcode, 1);
@@ -193,14 +254,14 @@ mod tests {
 
     use crate::common::{dns_reader::DnsReader, AsBytes, Parse};
 
-    use super::Header;
+    use super::{Header, OpCode, QueryResponse};
 
     #[test]
     fn test_parse() {
         let header = Header {
             id: 9999,
-            qr: 1,
-            opcode: 1,
+            qr: QueryResponse::Reply,
+            opcode: OpCode::Query,
             aa: 1,
             tc: 1,
             rd: 1,
@@ -231,8 +292,8 @@ mod tests {
     fn test_as_bytes() {
         let dns_header = Header {
             id: 1234,
-            qr: 1,
-            opcode: 0,
+            qr: QueryResponse::Reply,
+            opcode: OpCode::Query,
             aa: 0,
             tc: 0,
             rd: 0,

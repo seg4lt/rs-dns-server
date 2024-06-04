@@ -7,10 +7,6 @@ static CLI_ARGS: OnceLock<HashMap<String, String>> = OnceLock::new();
 pub struct CliArgs {}
 
 impl CliArgs {
-    pub fn test_resolver() -> bool {
-        let args = CLI_ARGS.get().expect("ARGS is not initialized");
-        args.get("--test-resolver").is_some()
-    }
     pub fn port() -> String {
         let args = CLI_ARGS.get().expect("ARGS is not initialized");
         args.get("--port")

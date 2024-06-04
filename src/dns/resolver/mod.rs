@@ -1,5 +1,4 @@
 use anyhow::{bail, Context};
-use tracing::debug;
 
 use crate::{
     common::{dns_reader::DnsReader, AsBytes, Parse},
@@ -30,7 +29,6 @@ impl DnsResolver {
         let packets = packets
             .iter()
             .map(|p| {
-                debug!("Sending packet to resolver {}: {p:#?}", self.addr.clone());
                 r_socket
                     .send(&p.as_bytes())
                     .context(fdbg!(
@@ -38,19 +36,13 @@ impl DnsResolver {
                         self.addr.clone()
                     ))
                     .unwrap();
-                debug!("Receiving packet from resolver");
                 let size = r_socket
                     .recv(&mut buf)
                     .context(fdbg!("Unable to receive from resolver"))
                     .unwrap();
-                debug!(
-                    "Received packet from resolver with size: {:?}",
-                    &buf[0..size]
-                );
                 let mut dns_reader = DnsReader::new(&buf);
                 let received_packet = Packet::parse(&mut dns_reader);
                 assert_eq!(p.header.id, received_packet.header.id);
-                debug!("received packet from resolver: {received_packet:#?}");
                 received_packet
             })
             .collect::<Vec<_>>();
@@ -64,7 +56,6 @@ impl DnsResolver {
         let packets = packets
             .iter()
             .map(|p| {
-                debug!("Sending packet to resolver: {p:#?}");
                 socket
                     .send_to(&p.as_bytes(), r_addr)
                     .context(fdbg!("Unable to send to resolver address"))
@@ -76,7 +67,6 @@ impl DnsResolver {
                 let mut dns_reader = DnsReader::new(&buf);
                 let received_packet = Packet::parse(&mut dns_reader);
                 assert_eq!(p.header.id, received_packet.header.id);
-                debug!("Received packet from resolver: {received_packet:#?}");
                 received_packet
             })
             .collect::<Vec<_>>();

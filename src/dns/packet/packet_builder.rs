@@ -1,3 +1,4 @@
+use crate::dns::header::OpCode;
 use crate::dns::{answer::Answer, header::Header, question::Question};
 
 use super::Packet;
@@ -33,19 +34,14 @@ impl PacketBuilder {
     pub fn build(self) -> Packet {
         let packet = Packet {
             header: Header {
-                id: self.header.id,
-                qr: 1,
-                opcode: self.header.opcode,
-                aa: 0,
-                tc: 0,
-                rd: self.header.rd,
-                ra: 0,
-                z: 0,
-                rcode: if self.header.opcode == 0 { 0 } else { 4 },
                 qdcount: self.questions.len() as u16,
                 ancount: self.answers.len() as u16,
-                nscount: 0,
-                arcount: 0,
+                rcode: if self.header.opcode == OpCode::Query {
+                    0
+                } else {
+                    4
+                },
+                ..self.header.clone()
             },
             questions: self.questions,
             answers: self.answers,
